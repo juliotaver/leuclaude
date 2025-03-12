@@ -1,12 +1,6 @@
 import axios from 'axios';
 
-// Configuración base para axios
-const api = axios.create({
-  baseURL: process.env.REACT_APP_API_URL || '/api',
-  headers: {
-    'Content-Type': 'application/json'
-  }
-});
+// Configuración base para axio
 
 // En tus servicios o componentes que hacen peticiones API
 const API_URL = process.env.REACT_APP_API_URL || '/api';
