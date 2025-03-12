@@ -1,3 +1,4 @@
+// frontend/src/pages/HomePage.js - Agregar botón de escaneo
 import React from 'react';
 import { Link } from 'react-router-dom';
 
@@ -7,6 +8,30 @@ const HomePage = () => {
       <h1 style={{ textAlign: 'center', marginTop: '2rem', color: 'var(--primary-color)' }}>
         Leu Beauty - Programa de Fidelidad
       </h1>
+      
+      {/* Botón grande de escaneo en la parte superior */}
+      <div className="card" style={{ 
+        maxWidth: '600px', 
+        margin: '2rem auto', 
+        backgroundColor: 'var(--primary-color)',
+        color: 'white',
+        textAlign: 'center'
+      }}>
+        <h2 style={{ marginBottom: '1rem' }}>Escanear un pase</h2>
+        <p style={{ marginBottom: '1.5rem' }}>
+          Escanea el código QR de un pase para registrar una visita
+        </p>
+        <Link to="/scanner" className="btn" style={{
+          backgroundColor: 'white',
+          color: 'var(--primary-color)',
+          padding: '0.75rem 2rem',
+          fontSize: '1.1rem',
+          fontWeight: 'bold',
+          display: 'inline-block'
+        }}>
+          Escanear ahora
+        </Link>
+      </div>
       
       <div className="card" style={{ maxWidth: '600px', margin: '2rem auto' }}>
         <h2 className="card-title">Sistema de Pases de Fidelidad</h2>

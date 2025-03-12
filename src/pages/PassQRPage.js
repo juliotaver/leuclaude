@@ -9,52 +9,59 @@ const PassQRPage = () => {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-  const [passData, setPassData] = useState(null);
+  // const [passData, setPassData] = useState(null); // Eliminado: No se usa
   const [passUrl, setPassUrl] = useState('');
   const [client, setClient] = useState(null);
 
-  // Usar useCallback para fetchPassData
+  // Define la URL base de la API.  Usa una variable de entorno para producción,
+  // y un valor por defecto para desarrollo.
+  const API_URL = process.env.REACT_APP_API_URL || '/api'; //  '/api' es correcto para desarrollo local
+
   const fetchPassData = useCallback(async () => {
     try {
       setLoading(true);
-      const passResponse = await axios.get(`/api/passes/${id}`);
-      setPassData(passResponse.data);
+      const passResponse = await axios.get(`${API_URL}/passes/${id}`); // Usa API_URL aquí también
+      // setPassData(passResponse.data); // Eliminado: No se usa
 
-      // Construir la URL del pase
-      const host = window.location.origin;
-      setPassUrl(`${host}/api/passes/${id}/download`);
+      // Construir la URL de descarga del pase.
+      setPassUrl(`${API_URL}/passes/${id}/download`); // Usa API_URL
 
-      // Buscar información del cliente si existe
+      // Buscar información del cliente (si existe un endpoint /api/clients).
       try {
-        const clientsResponse = await axios.get('/api/clients');
-        const relatedClient = clientsResponse.data.find(client => client.passId === id);
+        const clientsResponse = await axios.get(`${API_URL}/clients`); // Usa API_URL
+        const relatedClient = clientsResponse.data.find(client => client.passId === id); // Supone que tienes un campo passId
         if (relatedClient) {
           setClient(relatedClient);
         }
       } catch (clientErr) {
         console.error('Error al obtener datos del cliente:', clientErr);
+        // Considera mostrar un error al usuario, no solo en la consola.
+        // setError('No se pudo cargar la información del cliente.'); // Podrías descomentar esto
       }
 
       setLoading(false);
     } catch (err) {
-      setError('No se pudo cargar la información del pase');
+      setError('No se pudo cargar la información del pase.'); // Mensaje de error para el usuario
       setLoading(false);
       console.error('Error al obtener pase:', err);
+      // Considera mostrar un error más detallado al usuario si es apropiado.
+      // if (err.response) { setError(`Error del servidor: ${err.response.status}`); }
     }
-  }, [id]);
+  }, [id, API_URL]); // API_URL es una dependencia
 
   useEffect(() => {
-    // Si tenemos los datos en el estado de navegación, usarlos
-    if (location.state?.pass && location.state?.passUrl) {
-      setPassData(location.state.pass);
+    // Si tenemos los datos en el estado de navegación (provenientes de otro componente),
+    // úsalos.  Esto evita una petición a la API innecesaria.
+    if (location.state?.passUrl && location.state?.client) {
+       // setPassData(location.state.pass); Ya no se necesita
       setPassUrl(location.state.passUrl);
       setClient(location.state.client);
       setLoading(false);
     } else {
-      // Si no, cargar desde la API
+      // Si no tenemos los datos en el estado de navegación, cárgalos desde la API.
       fetchPassData();
     }
-  }, [id, location.state, fetchPassData]);
+  }, [location.state, fetchPassData]); // fetchPassData ya está correctamente en las dependencias
 
   const handleCreateNew = () => {
     navigate('/new-client');
@@ -79,21 +86,12 @@ const PassQRPage = () => {
     );
   }
 
-  // Renderizar la información del pase
   return (
     <div className="qr-container">
       <div className="card" style={{ maxWidth: '500px', width: '100%' }}>
         <h1 className="card-title" style={{ textAlign: 'center' }}>Pase de Fidelidad</h1>
 
-        {passData && (
-          <div style={{ marginBottom: '1rem', textAlign: 'center' }}>
-            <p><strong>Visitas:</strong> {passData.visits}</p>
-            {passData.nextReward && (
-              <p><strong>Próxima recompensa:</strong> {passData.nextReward.reward} ({passData.nextReward.visits} visitas)</p>
-            )}
-          </div>
-        )}
-
+        {/* Información del cliente (si la tienes) */}
         {client && (
           <div style={{ marginBottom: '1rem', textAlign: 'center' }}>
             <p><strong>Cliente:</strong> {client.name}</p>
@@ -102,6 +100,7 @@ const PassQRPage = () => {
           </div>
         )}
 
+        {/* Código QR */}
         <div className="qr-code" style={{ textAlign: 'center', margin: '1.5rem 0' }}>
           <QRCodeSVG
             value={passUrl}
@@ -111,10 +110,12 @@ const PassQRPage = () => {
           />
         </div>
 
+        {/* Instrucciones */}
         <div className="qr-instructions">
           <h3 style={{ marginBottom: '0.75rem' }}>Instrucciones</h3>
-          <p>Para añadir este pase al Apple Wallet, escanea el código QR con tu iPhone.</p>
+          <p>Para añadir este pase al Apple Wallet, escanea el código QR con tu iPhone o haz clic en "Descargar Pase".</p>
 
+          {/* Botón de descarga */}
           <div style={{ marginTop: '1.5rem', display: 'flex', justifyContent: 'center' }}>
             <a
               href={passUrl}
@@ -127,6 +128,7 @@ const PassQRPage = () => {
             </a>
           </div>
 
+          {/* Botón para crear un nuevo pase */}
           <div style={{ marginTop: '1rem', display: 'flex', justifyContent: 'center' }}>
             <button onClick={handleCreateNew} className="btn btn-primary" style={{ backgroundColor: '#666' }}>
               Crear Nuevo Pase

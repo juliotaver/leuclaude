@@ -1,3 +1,4 @@
+// frontend/src/components/Navbar.js
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 
@@ -26,8 +27,11 @@ const Navbar = () => {
           <Link to="/new-client" className="navbar-link">
             Nuevo Cliente
           </Link>
+          <Link to="/scanner" className="navbar-link">
+            Escanear Pase
+          </Link>
           <Link to="/clients" className="navbar-link">
-            Administrar Clientes
+            Clientes
           </Link>
         </div>
       </div>

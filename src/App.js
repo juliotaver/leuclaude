@@ -1,3 +1,4 @@
+// frontend/src/App.js
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import './App.css';
@@ -7,6 +8,7 @@ import HomePage from './pages/HomePage';
 import NewClientPage from './pages/NewClientPage';
 import PassQRPage from './pages/PassQRPage';
 import ClientListPage from './pages/ClientListPage';
+import ScannerPage from './pages/ScannerPage'; // Nueva importación
 
 function App() {
   return (
@@ -19,6 +21,7 @@ function App() {
             <Route path="/new-client" element={<NewClientPage />} />
             <Route path="/pass/:id" element={<PassQRPage />} />
             <Route path="/clients" element={<ClientListPage />} />
+            <Route path="/scanner" element={<ScannerPage />} /> {/* Nueva ruta */}
           </Routes>
         </main>
       </div>
