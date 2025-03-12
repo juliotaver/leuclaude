@@ -1,6 +1,6 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { useParams, useLocation, useNavigate } from 'react-router-dom';
-import { QRCodeSVG } from 'qrcode.react'; // Correct import
+import { QRCodeSVG } from 'qrcode.react';
 import axios from 'axios';
 
 const PassQRPage = () => {
@@ -13,20 +13,8 @@ const PassQRPage = () => {
   const [passUrl, setPassUrl] = useState('');
   const [client, setClient] = useState(null);
 
-  useEffect(() => {
-    // Si tenemos los datos en el estado de navegación, usarlos
-    if (location.state?.pass && location.state?.passUrl) {
-      setPassData(location.state.pass);
-      setPassUrl(location.state.passUrl);
-      setClient(location.state.client);
-      setLoading(false);
-    } else {
-      // Si no, cargar desde la API
-      fetchPassData();
-    }
-  }, [id, location.state]);
-
-  const fetchPassData = async () => {
+  // Usar useCallback para fetchPassData
+  const fetchPassData = useCallback(async () => {
     try {
       setLoading(true);
       const passResponse = await axios.get(`/api/passes/${id}`);
@@ -53,7 +41,20 @@ const PassQRPage = () => {
       setLoading(false);
       console.error('Error al obtener pase:', err);
     }
-  };
+  }, [id]);
+
+  useEffect(() => {
+    // Si tenemos los datos en el estado de navegación, usarlos
+    if (location.state?.pass && location.state?.passUrl) {
+      setPassData(location.state.pass);
+      setPassUrl(location.state.passUrl);
+      setClient(location.state.client);
+      setLoading(false);
+    } else {
+      // Si no, cargar desde la API
+      fetchPassData();
+    }
+  }, [id, location.state, fetchPassData]);
 
   const handleCreateNew = () => {
     navigate('/new-client');
@@ -78,10 +79,20 @@ const PassQRPage = () => {
     );
   }
 
+  // Renderizar la información del pase
   return (
     <div className="qr-container">
       <div className="card" style={{ maxWidth: '500px', width: '100%' }}>
         <h1 className="card-title" style={{ textAlign: 'center' }}>Pase de Fidelidad</h1>
+
+        {passData && (
+          <div style={{ marginBottom: '1rem', textAlign: 'center' }}>
+            <p><strong>Visitas:</strong> {passData.visits}</p>
+            {passData.nextReward && (
+              <p><strong>Próxima recompensa:</strong> {passData.nextReward.reward} ({passData.nextReward.visits} visitas)</p>
+            )}
+          </div>
+        )}
 
         {client && (
           <div style={{ marginBottom: '1rem', textAlign: 'center' }}>
