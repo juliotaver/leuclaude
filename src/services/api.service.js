@@ -8,6 +8,12 @@ const api = axios.create({
   }
 });
 
+// En tus servicios o componentes que hacen peticiones API
+const API_URL = process.env.REACT_APP_API_URL || '/api';
+
+// Al hacer las peticiones
+axios.get(`${API_URL}/clients`)
+
 // Interceptor para manejar errores globalmente
 api.interceptors.response.use(
   response => response,
