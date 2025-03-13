@@ -1,4 +1,3 @@
-// frontend/src/pages/ScannerPage.js
 import React, { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
@@ -6,7 +5,6 @@ import { BrowserMultiFormatReader, BarcodeFormat } from '@zxing/library';
 
 const ScannerPage = () => {
   const [scanning, setScanning] = useState(true);
-  const [scanResult, setScanResult] = useState(null);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [loading, setLoading] = useState(false);
@@ -21,16 +19,20 @@ const ScannerPage = () => {
 
   // Inicializar el lector de códigos QR
   useEffect(() => {
+    // Limpiar cualquier instancia anterior
+    if (codeReaderRef.current) {
+      codeReaderRef.current.reset();
+    }
+
+    // Crear nueva instancia
     codeReaderRef.current = new BrowserMultiFormatReader();
-    
-    // Definir los formatos que queremos detectar (QR Code)
-    const hints = new Map();
-    hints.set(2, [BarcodeFormat.QR_CODE]);
-    codeReaderRef.current.hints = hints;
+    console.log("Inicializando lector de códigos QR");
     
     // Obtener las cámaras disponibles
     codeReaderRef.current.listVideoInputDevices()
       .then(videoInputDevices => {
+        console.log("Cámaras disponibles:", videoInputDevices);
+        
         if (videoInputDevices.length === 0) {
           setError('No se encontraron cámaras disponibles');
           return;
@@ -46,32 +48,39 @@ const ScannerPage = () => {
         );
         
         setCameraId(backCamera ? backCamera.deviceId : videoInputDevices[0].deviceId);
+        console.log("Cámara seleccionada:", backCamera || videoInputDevices[0]);
       })
       .catch(err => {
         console.error('Error al listar cámaras:', err);
-        setError('Error al acceder a las cámaras');
+        setError('Error al acceder a las cámaras. Verifica los permisos del navegador.');
       });
     
+    // Limpiar al desmontar
     return () => {
-      // Limpiar al desmontar
       if (codeReaderRef.current) {
+        console.log("Limpiando lector de códigos QR");
         codeReaderRef.current.reset();
-        codeReaderRef.current = null;
       }
     };
   }, []);
 
   // Iniciar el escaneo cuando se selecciona una cámara
   useEffect(() => {
-    if (!cameraId || !codeReaderRef.current || !scanning) return;
+    if (!cameraId || !codeReaderRef.current || !scanning) {
+      console.log("No se puede iniciar el escaneo:", { cameraId, codeReader: !!codeReaderRef.current, scanning });
+      return;
+    }
     
     const startScanning = async () => {
       try {
+        console.log("Iniciando escaneo con cámara:", cameraId);
+        
         await codeReaderRef.current.decodeFromVideoDevice(
           cameraId,
           videoRef.current,
           (result, error) => {
             if (result && scanning) {
+              console.log("Código QR detectado:", result.getText());
               handleScan(result.getText());
             }
             if (error && error.name !== 'NotFoundException') {
@@ -79,9 +88,11 @@ const ScannerPage = () => {
             }
           }
         );
+        
+        console.log("Escaneo iniciado con éxito");
       } catch (err) {
         console.error('Error al iniciar el escaneo:', err);
-        setError('Error al iniciar la cámara. Revisa los permisos.');
+        setError('Error al iniciar la cámara. Revisa los permisos de tu navegador.');
       }
     };
     
@@ -89,6 +100,7 @@ const ScannerPage = () => {
     
     return () => {
       if (codeReaderRef.current) {
+        console.log("Deteniendo escaneo");
         codeReaderRef.current.reset();
       }
     };
@@ -97,8 +109,8 @@ const ScannerPage = () => {
   const handleScan = async (text) => {
     if (!text || !scanning || loading) return;
     
+    console.log("Procesando código escaneado:", text);
     setScanning(false);
-    setScanResult(text);
     
     // Extraer el ID del pase de la URL escaneada
     try {
@@ -108,14 +120,25 @@ const ScannerPage = () => {
       
       if (passIdIndex > 0 && passIdIndex < pathParts.length) {
         const passId = pathParts[passIdIndex];
+        console.log("ID del pase extraído:", passId);
         await processPass(passId);
       } else {
-        setError('QR inválido. No se pudo identificar el ID del pase.');
+        // Intenta encontrar cualquier número en la URL como último recurso
+        const matches = text.match(/\d+/g);
+        if (matches && matches.length > 0) {
+          console.log("ID encontrado en el texto:", matches[0]);
+          await processPass(matches[0]);
+        } else {
+          setError('QR inválido. No se pudo identificar el ID del pase.');
+        }
       }
     } catch (e) {
+      console.log("Error al procesar URL, intentando con texto completo:", e);
       // Si no es una URL, puede ser solo el ID del pase
-      if (text.match(/^\d+$/)) {
-        await processPass(text);
+      const matches = text.match(/\d+/g);
+      if (matches && matches.length > 0) {
+        console.log("ID encontrado en el texto:", matches[0]);
+        await processPass(matches[0]);
       } else {
         setError('El código QR no contiene una URL o ID válido.');
       }
@@ -125,14 +148,16 @@ const ScannerPage = () => {
   const processPass = async (passId) => {
     try {
       setLoading(true);
+      console.log("Procesando pase con ID:", passId);
       
       // 1. Obtener datos del pase
-      const passResponse = await axios.get(`/api/passes/${passId}`);
+      const API_URL = process.env.REACT_APP_API_URL || '/api';
+      const passResponse = await axios.get(`${API_URL}/passes/${passId}`);
       setPassData(passResponse.data);
       
       // 2. Buscar cliente asociado
       try {
-        const clientsResponse = await axios.get('/api/clients');
+        const clientsResponse = await axios.get(`${API_URL}/clients`);
         const client = clientsResponse.data.find(c => c.passId === passId);
         if (client) {
           setClientData(client);
@@ -142,7 +167,7 @@ const ScannerPage = () => {
       }
       
       // 3. Incrementar visitas
-      const updatedPassResponse = await axios.put(`/api/passes/${passId}`);
+      const updatedPassResponse = await axios.put(`${API_URL}/passes/${passId}`);
       setPassData(updatedPassResponse.data);
       setSuccess(`¡Visita registrada! Total de visitas: ${updatedPassResponse.data.visits}`);
       
@@ -179,6 +204,32 @@ const ScannerPage = () => {
     setCameraId(availableCameras[nextIndex].deviceId);
   };
 
+  // Botón para solicitar permisos manualmente
+  const requestCameraAccess = async () => {
+    try {
+      await navigator.mediaDevices.getUserMedia({ video: true });
+      
+      // Reiniciar el proceso después de obtener permisos
+      if (codeReaderRef.current) {
+        codeReaderRef.current.reset();
+      }
+      
+      // Reiniciar el componente
+      codeReaderRef.current = new BrowserMultiFormatReader();
+      codeReaderRef.current.listVideoInputDevices()
+        .then(devices => {
+          if (devices.length > 0) {
+            setAvailableCameras(devices);
+            setCameraId(devices[0].deviceId);
+            setError('');
+          }
+        });
+    } catch (err) {
+      console.error('Error al solicitar acceso a la cámara:', err);
+      setError('No se pudo acceder a la cámara. Por favor, verifica los permisos del navegador.');
+    }
+  };
+
   return (
     <div className="scanner-page">
       <h1 style={{ textAlign: 'center', marginTop: '1rem', color: 'var(--primary-color)' }}>
@@ -193,6 +244,13 @@ const ScannerPage = () => {
           color: '#c62828'
         }}>
           <p style={{ margin: 0 }}>{error}</p>
+          <button 
+            onClick={requestCameraAccess}
+            className="btn btn-primary"
+            style={{ marginTop: '1rem' }}
+          >
+            Permitir acceso a la cámara
+          </button>
         </div>
       )}
       
@@ -245,6 +303,13 @@ const ScannerPage = () => {
           <p style={{ textAlign: 'center', margin: '1rem 0' }}>
             Posiciona el código QR del pase dentro del área de escaneo
           </p>
+          
+          {/* Botón de solicitud de permisos explícito */}
+          <div style={{ textAlign: 'center', marginTop: '1rem' }}>
+            <button onClick={requestCameraAccess} className="btn btn-primary">
+              Activar cámara
+            </button>
+          </div>
         </div>
       ) : (
         <div className="card">
