@@ -1,12 +1,14 @@
 import axios from 'axios';
 
-// Configuración base para axio
-
-// En tus servicios o componentes que hacen peticiones API
+// Configuración base para axios
 const API_URL = process.env.REACT_APP_API_URL || '/api';
 
-// Al hacer las peticiones
-axios.get(`${API_URL}/clients`)
+const api = axios.create({
+  baseURL: API_URL,
+  headers: {
+    'Content-Type': 'application/json'
+  }
+});
 
 // Interceptor para manejar errores globalmente
 api.interceptors.response.use(
@@ -14,6 +16,11 @@ api.interceptors.response.use(
   error => {
     // Log del error
     console.error('API Error:', error.response || error);
+    console.log('Request details:', {
+      url: error.config?.url,
+      method: error.config?.method,
+      data: error.config?.data
+    });
     return Promise.reject(error);
   }
 );
@@ -77,7 +84,10 @@ export const clientService = {
   }
 };
 
-export default {
+// Exportación predeterminada
+const services = {
   pass: passService,
   client: clientService
 };
+
+export default services;
