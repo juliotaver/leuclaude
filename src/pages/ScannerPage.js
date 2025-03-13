@@ -117,7 +117,7 @@ const ScannerPage = () => {
     try {
       const url = new URL(text);
       const pathParts = url.pathname.split('/');
-      const passIdIndex = pathParts.findIndex(part => part === 'passes') + 1;
+      const passIdIndex = pathParts.findIndex(part => part === 'passes' || part === 'scan' || part === 'verify') + 1;
       
       if (passIdIndex > 0 && passIdIndex < pathParts.length) {
         const passId = pathParts[passIdIndex];
