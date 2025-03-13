@@ -5,6 +5,7 @@ import { BrowserMultiFormatReader, BarcodeFormat } from '@zxing/library';
 
 const ScannerPage = () => {
   const [scanning, setScanning] = useState(true);
+  const [scanResult, setScanResult] = useState(null);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [loading, setLoading] = useState(false);
